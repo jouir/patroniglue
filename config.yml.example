@@ -1,0 +1,13 @@
+---
+frontend:
+  host: 127.0.0.1
+  port: 8443
+  certfile: /path/to/certificate.pem
+  keyfile: /pat/to/keyfile.key
+backend:
+  host: 127.0.0.1
+  port: 8008
+  scheme: http
+cache:
+  ttl: 1
+  interval: 0.25
