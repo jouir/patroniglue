@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,11 +12,13 @@ import (
 
 // Frontend exposes statuses over HTTP(S)
 type Frontend struct {
-	backend  Backend
-	host     string
-	port     int
-	certfile string
-	keyfile  string
+	backend       Backend
+	host          string
+	port          int
+	certfile      string
+	keyfile       string
+	tlsMinVersion string
+	tlsCiphers    []string
 }
 
 var backend Backend
@@ -35,10 +38,30 @@ func (f *Frontend) Start() error {
 
 	Info("listening on %s", f)
 	var err error
+	server := &http.Server{
+		Addr:    f.String(),
+		Handler: r,
+	}
 	if f.certfile != "" && f.keyfile != "" {
-		err = http.ListenAndServeTLS(f.String(), f.certfile, f.keyfile, r)
+		config := &tls.Config{}
+		if f.tlsMinVersion != "" {
+			config.MinVersion, err = parseTLSVersion(f.tlsMinVersion)
+			if err != nil {
+				return err
+			}
+		}
+		if len(f.tlsCiphers) > 0 {
+			ciphers, err := parseCiphersSuite(f.tlsCiphers)
+			if err != nil {
+				return err
+			}
+			config.CipherSuites = ciphers
+		}
+
+		server.TLSConfig = config
+		err = server.ListenAndServeTLS(f.certfile, f.keyfile)
 	} else {
-		err = http.ListenAndServe(f.String(), r)
+		err = server.ListenAndServe()
 	}
 
 	if err != nil {
@@ -57,10 +80,12 @@ func NewFrontend(config FrontendConfig, b Backend) (*Frontend, error) {
 	backend = b
 	logFormat = config.LogFormat
 	return &Frontend{
-		host:     config.Host,
-		port:     config.Port,
-		certfile: config.Certfile,
-		keyfile:  config.Keyfile,
+		host:          config.Host,
+		port:          config.Port,
+		certfile:      config.Certfile,
+		keyfile:       config.Keyfile,
+		tlsMinVersion: config.TLSMinVersion,
+		tlsCiphers:    config.TLSCiphers,
 	}, nil
 }
 
@@ -139,4 +164,65 @@ func ReplicaHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(status)
 	io.WriteString(w, message)
+}
+
+// Store TLS ciphers map from string to constant
+// See full list at https://golang.org/pkg/crypto/tls/#pkg-constants
+var tlsCiphers = map[string]uint16{
+	"TLS_RSA_WITH_RC4_128_SHA":                tls.TLS_RSA_WITH_RC4_128_SHA,
+	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_RSA_WITH_AES_256_CBC_SHA":            tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_CBC_SHA256":         tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA":        tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_RC4_128_SHA":          tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+	"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA":     tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305":    tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305":  tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+	"TLS_AES_128_GCM_SHA256":                  tls.TLS_AES_128_GCM_SHA256,
+	"TLS_AES_256_GCM_SHA384":                  tls.TLS_AES_256_GCM_SHA384,
+	"TLS_CHACHA20_POLY1305_SHA256":            tls.TLS_CHACHA20_POLY1305_SHA256,
+	"TLS_FALLBACK_SCSV":                       tls.TLS_FALLBACK_SCSV,
+}
+
+// Convert a list of ciphers from string to TLS constants
+func parseCiphersSuite(strings []string) (ciphers []uint16, err error) {
+	for _, s := range strings {
+		if cipher, ok := tlsCiphers[s]; ok {
+			ciphers = append(ciphers, cipher)
+		} else {
+			return nil, fmt.Errorf("unknown cipher detected: %s", s)
+		}
+	}
+	return ciphers, nil
+}
+
+// Store TLS versions map from string to constant
+// See full list at https://golang.org/pkg/crypto/tls/#pkg-constants
+var tlsVersions = map[string]uint16{
+	"SSLv3.0": tls.VersionSSL30,
+	"TLSv1.0": tls.VersionTLS10,
+	"TLSv1.1": tls.VersionTLS11,
+	"TLSv1.2": tls.VersionTLS12,
+	"TLSv1.3": tls.VersionTLS13,
+}
+
+// Convert a list of ciphers from string to TLS constants
+func parseTLSVersion(s string) (uint16, error) {
+	if version, ok := tlsVersions[s]; ok {
+		return version, nil
+	}
+	return 0, fmt.Errorf("unknown TLS version: %s", s)
 }

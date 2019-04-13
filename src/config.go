@@ -17,11 +17,13 @@ type Config struct {
 
 // FrontendConfig for storing Frontend settings
 type FrontendConfig struct {
-	Host      string `yaml:"host"`
-	Port      int    `yaml:"port"`
-	Certfile  string `yaml:"certfile"`
-	Keyfile   string `yaml:"keyfile"`
-	LogFormat string `yaml:"logformat"`
+	Host          string   `yaml:"host"`
+	Port          int      `yaml:"port"`
+	Certfile      string   `yaml:"certfile"`
+	Keyfile       string   `yaml:"keyfile"`
+	TLSMinVersion string   `yaml:"tls-min-version"`
+	TLSCiphers    []string `yaml:"tls-ciphers"`
+	LogFormat     string   `yaml:"logformat"`
 }
 
 // BackendConfig for storing Backend settings

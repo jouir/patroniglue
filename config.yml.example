@@ -4,6 +4,14 @@ frontend:
   port: 8443
   certfile: /path/to/certificate.pem
   keyfile: /pat/to/keyfile.key
+  tls-ciphers:
+    - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+    - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+    - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+    - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+    - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+  tls-min-version: TLSv1.1
 backend:
   host: 127.0.0.1
   port: 8008
