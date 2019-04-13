@@ -26,6 +26,8 @@ Configuration file format is YAML.
   * `port`: port to handle requests (80 by default)
   * `certfile`: path to SSL certificate file (will use HTTP by default if not provided)
   * `keyfile`: path to SSL private key file (will use HTTP by default if not provided)
+  * `tls-min-version`: minimum TLS version for HTTPS service (could be `SSLv3.0`, `TLSv1.0`,`TLSv1.1`, `TLSv1.2`, `TLSv1.3`)
+  * `tls-ciphers`: list of supported ciphers (see [full list](https://golang.org/pkg/crypto/tls/#pkg-constants))
 * `backend`: settings for sending requests to a backend
   * `host`: patroni REST API `listen` address
   * `port`: patroni REST API `listen` port
