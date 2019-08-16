@@ -41,7 +41,7 @@ See [config.yml.example](config.yml.example) file for an example.
 
 ## Internals
 
-* Frontend handles HTTP or HTTPS requests on "/master" and "/replica" routes available on Patroni API
+* Frontend handles HTTP or HTTPS requests on "/primary", "/master", "/replica", "/read-write" and "/read-only" routes available on Patroni API
 * Backend requests Patroni API using HTTP or HTTPS protocol and exposes state to frontend
 * Cache implements an in-memory key-value store to cache backend responses for some time
 
