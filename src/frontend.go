@@ -34,7 +34,10 @@ func (f *Frontend) Start() error {
 	Debug("registering routes")
 	r.HandleFunc("/health", HealthHandler).Methods("GET")
 	r.HandleFunc("/master", PrimaryHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/primary", PrimaryHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/read-write", ReadWriteHandler).Methods("GET", "OPTIONS")
 	r.HandleFunc("/replica", ReplicaHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/read-only", ReadOnlyHandler).Methods("GET", "OPTIONS")
 
 	Info("listening on %s", f)
 	var err error
@@ -148,6 +151,24 @@ func PrimaryHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, message)
 }
 
+// ReadWriteHandler exposes read-write status
+func ReadWriteHandler(w http.ResponseWriter, r *http.Request) {
+	var message string
+	var status int
+	readWrite, err := backend.IsReadWrite()
+	if err != nil {
+		message = fmt.Sprintf("{\"error\":\"%v\"}", err)
+		status = http.StatusServiceUnavailable
+	}
+	message = fmt.Sprintf("{\"read-write\":%t}", readWrite)
+	status = http.StatusServiceUnavailable
+	if readWrite {
+		status = http.StatusOK
+	}
+	w.WriteHeader(status)
+	io.WriteString(w, message)
+}
+
 // ReplicaHandler exposes replica status
 func ReplicaHandler(w http.ResponseWriter, r *http.Request) {
 	var message string
@@ -160,6 +181,24 @@ func ReplicaHandler(w http.ResponseWriter, r *http.Request) {
 	message = fmt.Sprintf("{\"replica\":%t}", replica)
 	status = http.StatusServiceUnavailable
 	if replica {
+		status = http.StatusOK
+	}
+	w.WriteHeader(status)
+	io.WriteString(w, message)
+}
+
+// ReadOnlyHandler exposes read-only status
+func ReadOnlyHandler(w http.ResponseWriter, r *http.Request) {
+	var message string
+	var status int
+	readOnly, err := backend.IsReadOnly()
+	if err != nil {
+		message = fmt.Sprintf("{\"error\":\"%v\"}", err)
+		status = http.StatusServiceUnavailable
+	}
+	message = fmt.Sprintf("{\"read-only\":%t}", readOnly)
+	status = http.StatusServiceUnavailable
+	if readOnly {
 		status = http.StatusOK
 	}
 	w.WriteHeader(status)

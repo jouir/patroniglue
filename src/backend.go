@@ -10,7 +10,9 @@ import (
 // and forward requests from frontend
 type Backend interface {
 	IsPrimary() (bool, error)
+	IsReadWrite() (bool, error)
 	IsReplica() (bool, error)
+	IsReadOnly() (bool, error)
 }
 
 // NewBackend creates a backend from a driver, a connection string
@@ -90,12 +92,22 @@ func (b HTTPBackend) request(key string) (bool, error) {
 	return state.(bool), nil
 }
 
-// IsPrimary will call /master route on patroni API
+// IsPrimary will call /primary route on patroni API
 func (b HTTPBackend) IsPrimary() (bool, error) {
-	return b.request("master")
+	return b.request("primary")
+}
+
+// IsReadWrite will call /read-write route on patroni API
+func (b HTTPBackend) IsReadWrite() (bool, error) {
+	return b.request("read-write")
 }
 
 // IsReplica will call /replica route on patroni API
 func (b HTTPBackend) IsReplica() (bool, error) {
 	return b.request("replica")
+}
+
+// IsReadOnly will call /read-only route on patroni API
+func (b HTTPBackend) IsReadOnly() (bool, error) {
+	return b.request("read-only")
 }
