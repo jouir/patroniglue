@@ -3,6 +3,11 @@
 
 [Patroni](https://github.com/zalando/patroni) uses the built-in Python HTTP server to expose database states. It's perfect to be used by a load balancer like HAProxy to achieve high-availability. But, sometimes, this interface freezes. There's an [open issue](https://github.com/zalando/patroni/issues/857) we are trying to close actively. As production doesn't wait, `patroniglue` was created to offload those checks and release pressure by adding a little response cache.
 
+## Deprecated
+
+We now use **nginx**. See [configuration example](extra/nginx.conf).
+
+
 ## Usage
 Start process using a configuration file:
 ```
